@@ -1,0 +1,50 @@
+services:
+  backend:
+    build: ./
+    ports:
+      - 8080:8080
+    secrets:
+      - tls-pem
+      - tls-key
+      - dsc-private
+    environment:
+      - POSTGRES_DB=gdhcn-validator
+      - SERVER_PORT=8080
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/gdhcn-validator
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - TNG_TLS_PEM=/run/secrets/tls-pem
+      - TNG_TLS_KEY=/run/secrets/tls-key
+      - TNG_COUNTRY=XL
+      - TNG_DSC_PRIVATEKEY=/run/secrets/dsc-private
+      - TNG_DSC_PRIVATEKEY_KID=UUuJcwmjoJM=
+      - GDHCN_BASEURL=http://lacpass.create.cl:8182
+    networks:
+      - spring-postgres
+    volumes:
+      - ./json:/json
+  db:
+    image: postgres
+    restart: always
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - spring-postgres
+    environment:
+      - POSTGRES_DB=gdhcn-validator
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+    expose:
+      - 5432
+    
+volumes:
+  db-data:
+secrets:
+  dsc-private:
+    file: secret/DSCpriv.key
+  tls-key:
+    file: secret/TLS.key
+  tls-pem:
+    file: secret/TLS.pem
+networks:
+  spring-postgres:
