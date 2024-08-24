@@ -5,14 +5,15 @@ import co.entomo.gdhcn.entity.IpsFile;
 import co.entomo.gdhcn.entity.QrCode;
 import co.entomo.gdhcn.exceptions.GdhcnIPSAlreadyAccessedException;
 import co.entomo.gdhcn.exceptions.GdhcnQRCodeExpiredException;
+import co.entomo.gdhcn.entity.RecipientKey;
 import co.entomo.gdhcn.exceptions.GdhcnValidationException;
 import co.entomo.gdhcn.hcert.GreenCertificateDecoder;
 import co.entomo.gdhcn.hcert.GreenCertificateEncoder;
 import co.entomo.gdhcn.repository.IpsFileRepository;
 import co.entomo.gdhcn.repository.QrCodeRepository;
+import co.entomo.gdhcn.repository.RecipientKeyRepository;
 import co.entomo.gdhcn.service.GdhcnFileSystem;
 import co.entomo.gdhcn.service.GdhcnService;
-import co.entomo.gdhcn.util.AmazonClientUtil;
 import co.entomo.gdhcn.util.CertificateUtils;
 import co.entomo.gdhcn.util.HttpClientUtils;
 import co.entomo.gdhcn.vo.*;
@@ -40,8 +41,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 /**
- *  @author Uday Matta
- *  @organization entomo Labs
+ * @author Uday Matta
+ * @organization entomo Labs
  */
 @Slf4j
 @Service
@@ -57,6 +58,8 @@ public class GdhcnServiceImpl implements GdhcnService {
     private long ipsShLinkExpiry;
     @Value("${tng.dsc.privateKey.kid}")
     private String kidId;
+    @Value("${recipient.keyDurationMinutes}")
+    private int keyDurationMinutes;
     @Autowired
     private QrCodeRepository qrCodeRepository;
     @Autowired
@@ -102,7 +105,8 @@ public class GdhcnServiceImpl implements GdhcnService {
             qrCode.setFlag(shLinkPayload.getFlag());
             qrCodeRepository.save(qrCode);
             gdhcnFileSystem.uploadJson(fileName, qrCodeRequest.getJsonContent());
-            String shLinkConsent = "shlink://" + Base64.getEncoder().encodeToString(OBJECT_MAPPER.writeValueAsString(shLinkPayload).getBytes(StandardCharsets.UTF_8));
+            String shLinkConsent = "shlink://" + Base64.getEncoder()
+                    .encodeToString(OBJECT_MAPPER.writeValueAsString(shLinkPayload).getBytes(StandardCharsets.UTF_8));
 
             long expiredInMillies = new Date(Long.MAX_VALUE).getTime() / 1000L;
             if (!ObjectUtils.isEmpty(shLinkPayload.getExp())) {
@@ -161,7 +165,8 @@ public class GdhcnServiceImpl implements GdhcnService {
                 updateStatus(response, ++step, ValidationStatus.SUCCESS);
                 log.info("Protected Header: " + msg.getProtectedAttributes());
                 String kid = msg.getProtectedAttributes().get(HeaderKeys.KID.AsCBOR()).ToObject(String.class);
-                GdhcnCertificateVO gdhcnCertificateVO = httpClientUtils.getGdhcnCertificate(certificatePayLoad.getIss(), kid);
+                GdhcnCertificateVO gdhcnCertificateVO = httpClientUtils.getGdhcnCertificate(certificatePayLoad.getIss(),
+                        kid);
                 if (gdhcnCertificateVO == null)
                     throw new RuntimeException("Unable to Fetch GDHCN Certificate");
                 updateStatus(response, ++step, ValidationStatus.SUCCESS);
@@ -182,11 +187,10 @@ public class GdhcnServiceImpl implements GdhcnService {
                 log.info("shLink: " + shLink);
                 shLinkContent = OBJECT_MAPPER.readValue(shLink, SHLinkContent.class);
 
-                if(shLinkContent.getExp()!=null)
-                {
+                if (shLinkContent.getExp() != null) {
                     Date expDate = new Date(shLinkContent.getExp());
                     Date currentDate = new Date(System.currentTimeMillis());
-                    if(currentDate.after(expDate)){
+                    if (currentDate.after(expDate)) {
                         shLinkContent = null;
                         throw new RuntimeException("shlink expired");
                     }
@@ -232,29 +236,28 @@ public class GdhcnServiceImpl implements GdhcnService {
     }
 
     @Override
-    public Map<String, List<Map<String, String>>> getManifest(ManifestRequest manifestRequest, String manifestId) throws GdhcnValidationException {
+    public Map<String, List<Map<String, String>>> getManifest(ManifestRequest manifestRequest, String manifestId)
+            throws GdhcnValidationException {
         Map<String, List<Map<String, String>>> response = new HashMap<String, List<Map<String, String>>>();
         QrCode qrCode = qrCodeRepository.findByManifestId(manifestId).get();
-        if (qrCode != null)
-        {
-            if(qrCode.getFlag() == null || (qrCode.getFlag() != null && !qrCode.getFlag().contains("P"))){
+        if (qrCode != null) {
+            if (qrCode.getFlag() == null || (qrCode.getFlag() != null && !qrCode.getFlag().contains("P"))) {
                 throw new RuntimeException();
             }
-            if(!qrCode.getPassCode().contentEquals(manifestRequest.getPasscode())){
+            if (!qrCode.getPassCode().contentEquals(manifestRequest.getPasscode())) {
                 throw new GdhcnValidationException("");
             }
-            //Ips Created.
+            // Ips Created.
             Optional<IpsFile> optIpsFile = ipsFileRepository.findByManifestId(manifestId);
             IpsFile ipsFile = null;
-            if(optIpsFile.isEmpty())
-            {
+            if (optIpsFile.isEmpty()) {
                 ipsFile = new IpsFile();
                 ipsFile.setManifestId(manifestId);
                 ipsFile = ipsFileRepository.save(ipsFile);
-            }else{
+            } else {
                 ipsFile = optIpsFile.get();
-                if(ipsFile.getCreatedAt().toInstant().plus(ipsShLinkExpiry, ChronoUnit.MINUTES).isBefore(Instant.now()) || ipsFile.isAccessed())
-                {
+                if (ipsFile.getCreatedAt().toInstant().plus(ipsShLinkExpiry, ChronoUnit.MINUTES).isBefore(Instant.now())
+                        || ipsFile.isAccessed()) {
                     ipsFileRepository.delete(ipsFile);
                     ipsFile = new IpsFile();
                     ipsFile.setManifestId(manifestId);
@@ -273,8 +276,8 @@ public class GdhcnServiceImpl implements GdhcnService {
     public String downloadJson(String manifestId) throws GdhcnValidationException {
         try {
             // Incase flag not contains P - direct access
-            Optional<QrCode> optionalQrCode =  qrCodeRepository.findByManifestId(manifestId);
-            if(optionalQrCode.isPresent()) {
+            Optional<QrCode> optionalQrCode = qrCodeRepository.findByManifestId(manifestId);
+            if (optionalQrCode.isPresent()) {
                 QrCode qrCode = optionalQrCode.get();
                 if (qrCode != null && qrCode.getFlag() != null && qrCode.getFlag().contains("P")) {
                     throw new GdhcnValidationException("Invalid request");
@@ -290,14 +293,13 @@ public class GdhcnServiceImpl implements GdhcnService {
                 }
             }
             // access through manifest
-            IpsFile ipsFile =  ipsFileRepository.findById(manifestId).get();
-            if(ipsFile !=null && ipsFile.isAccessed())
-            {
+            IpsFile ipsFile = ipsFileRepository.findById(manifestId).get();
+            if (ipsFile != null && ipsFile.isAccessed()) {
                 throw new GdhcnIPSAlreadyAccessedException("Already Accessed");
             }
             ipsFile.setAccessed(true);
             QrCode qrCode = qrCodeRepository.findByManifestId(ipsFile.getManifestId()).get();
-            if(qrCode !=null) {
+            if (qrCode != null) {
                 String fileName = qrCode.getId() + ".json";
                 InputStream is = gdhcnFileSystem.downloadJson(fileName);
                 byte[] rawContent = is.readAllBytes();
@@ -332,8 +334,8 @@ public class GdhcnServiceImpl implements GdhcnService {
     private String getPrivateDSCKeyContent() throws IOException {
         StringBuilder content = new StringBuilder();
         try (FileInputStream fis = new FileInputStream(dscKeyPath);
-             InputStreamReader isr = new InputStreamReader(fis);
-             BufferedReader reader = new BufferedReader(isr)) {
+                InputStreamReader isr = new InputStreamReader(fis);
+                BufferedReader reader = new BufferedReader(isr)) {
 
             String line;
             while ((line = reader.readLine()) != null) {
