@@ -7,7 +7,6 @@ import java.util.Map;
 import co.entomo.gdhcn.exceptions.GdhcnValidationException;
 import co.entomo.gdhcn.vo.ManifestRequest;
 import co.entomo.gdhcn.vo.QrCodeRequest;
-import co.entomo.gdhcn.vo.StepStatus;
 import co.entomo.gdhcn.vo.ValidateCwtResponse;
 
 /**
@@ -56,7 +55,8 @@ public interface GdhcnService {
 	 * Downloads standard JSON data (not JWE) based on the provided JSON identifier.
 	 *
 	 * @param jsonId the identifier for the JSON data to be downloaded.
+	 * @param key the recipient key to download the JSON
 	 * @return a {@code String} representing the JSON data.
 	 */
-	String downloadJson(String jsonId);
+	String downloadJson(String jsonId, String key);
 }
