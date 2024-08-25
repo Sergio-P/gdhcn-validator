@@ -22,6 +22,7 @@ The **entomo GDHCN Validator** is a microservice designed for validating Verifia
 - **BouncyCastle:** Cryptographic operations for secure communications.
 - **Apache HttpClient:** HTTP client for making requests.
 - **COSE and Base45:** For encoding and decoding operations.
+- **Docker:** Container to run the app without installing dependencies.
 
 ## Dependencies
 
@@ -39,7 +40,9 @@ The **entomo GDHCN Validator** is a microservice designed for validating Verifia
 - **COSE:** For COSE operations.
 - **Commons Compress:** For file compression operations.
 
-## Configuration
+## Run project using Maven
+
+### Configuration
 
 Ensure you configure the following properties in your `application.properties` or `application.yml`:
 
@@ -66,23 +69,63 @@ tng.dsc.privateKey.kid =dsc kid id
 
 
 ```
-## Build and Run
+### Build and Run
 
 To build and run the application, follow these steps:
 
-### 1. Clone the repository:
+#### 1. Clone the repository:
 
 ```properties
 git clone https://github.com/gdhcnentomo/entomo-gdhcn-validator.git
 cd entomo-gdhcn-validator
 ```
-### 2. Build the project using Maven:
+#### 2. Create new folder to contain the generated QR files.
+```shell
+mkdir json
+```
+#### 3. Build the project using Maven:
 ```properties
 mvn clean install
 ```
-### 3. Run the application:
+#### 4. Run the application:
 ```properties
 mvn spring-boot:run
+```
+
+## Run project using Docker
+
+### Configuration
+
+Ensure you add the following files inside the `secret` folder (you need to create the folder first):
+
+- **DSCpriv.key:** DSC private key file.
+- **TLS.key:** TLS private key file.
+- **TLS.pem:** TLS certificate pem file.
+
+Additionally edit the configuration values inside the `docker-compose.yml`:
+
+- **TNG_DSC_PRIVATEKEY_KID:** DSC privatekey KID value
+- **GDHCN_BASEURL:** National Server base URL 
+
+### Build and Run
+
+To build and run the application, follow these steps:
+
+#### 1. Clone the repository:
+
+```properties
+git clone https://github.com/gdhcnentomo/entomo-gdhcn-validator.git
+cd entomo-gdhcn-validator
+```
+
+#### 2. Copy the correct files into the secret folder
+#### 3. Create new folder to contain the generated QR files.
+```shell
+mkdir json
+```
+#### 4. Build the project using Docker:
+```shell
+docker-compose up -d
 ```
 
 ## API Endpoints
