@@ -2,13 +2,14 @@ package co.entomo.gdhcn.service.impl;
 
 import COSE.*;
 import co.entomo.gdhcn.entity.QrCode;
+import co.entomo.gdhcn.entity.RecipientKey;
 import co.entomo.gdhcn.exceptions.GdhcnValidationException;
 import co.entomo.gdhcn.hcert.GreenCertificateDecoder;
 import co.entomo.gdhcn.hcert.GreenCertificateEncoder;
 import co.entomo.gdhcn.repository.QrCodeRepository;
+import co.entomo.gdhcn.repository.RecipientKeyRepository;
 import co.entomo.gdhcn.service.GdhcnFileSystem;
 import co.entomo.gdhcn.service.GdhcnService;
-import co.entomo.gdhcn.util.AmazonClientUtil;
 import co.entomo.gdhcn.util.CertificateUtils;
 import co.entomo.gdhcn.util.HttpClientUtils;
 import co.entomo.gdhcn.vo.*;
@@ -47,8 +48,12 @@ public class GdhcnServiceImpl implements GdhcnService {
     private String dscKeyPath;
     @Value("${tng.dsc.privateKey.kid}")
     private String kidId;
+    @Value("${recipient.keyDurationMinutes}")
+    private int keyDurationMinutes;
     @Autowired
     private QrCodeRepository qrCodeRepository;
+    @Autowired
+    private RecipientKeyRepository recipientKeyRepository;
     @Autowired
     private CertificateUtils certificateUtils;
     @Autowired
@@ -222,7 +227,18 @@ public class GdhcnServiceImpl implements GdhcnService {
         Map<String, List<Map<String, String>>> response = new HashMap<String, List<Map<String, String>>>();
         QrCode qrCode = qrCodeRepository.findByIdAndPassCode(jsonId, manifestRequest.getPasscode()).get();
         if (qrCode != null) {
-            String url = baseUrl + "/v2/ips-json/" + jsonId;
+            String uuid = UUID.randomUUID().toString();
+
+            RecipientKey recipientKey = modelMapper.map(manifestRequest, RecipientKey.class);
+            recipientKey.setId(uuid);
+            recipientKey.setJsonId(jsonId);
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(new Date());
+            calendar.add(Calendar.MINUTE, keyDurationMinutes);
+            recipientKey.setExpiresOn(calendar.getTime());
+            recipientKeyRepository.save(recipientKey);
+
+            String url = baseUrl + "/v2/ips-json/" + jsonId + "?key=" + uuid;
             response.put("files", List.of(Map.of("contentType", "application/fhir+json", "location", url)));
             return response;
         }
@@ -230,8 +246,20 @@ public class GdhcnServiceImpl implements GdhcnService {
     }
 
     @Override
-    public String downloadJson(String jsonId) {
+    public String downloadJson(String jsonId, String key) {
         try {
+            Optional<RecipientKey> recipientKey = recipientKeyRepository.findByIdAndJsonId(key, jsonId);
+            if(recipientKey.isEmpty()){
+                log.info("Missing reciepient key");
+                return null;
+            }
+            Date expDate = recipientKey.get().getExpiresOn();
+            Date currentDate = new Date();
+            if(currentDate.after(expDate)){
+                log.info("Reciepient key expired");
+                return null;
+            }
+
             QrCode qrCode = qrCodeRepository.findById(jsonId).get();
             if (qrCode != null) {
                 String fileName = jsonId + ".json";

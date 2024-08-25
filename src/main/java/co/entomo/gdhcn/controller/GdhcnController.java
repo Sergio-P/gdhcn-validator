@@ -61,9 +61,9 @@ public class GdhcnController
 	 */
 	@CrossOrigin(origins = "*", allowedHeaders = "*")
 	@GetMapping(value = "/v2/ips-json/{jsonId}", produces = {"application/json"})
-	public ResponseEntity<String> getIpsJson(@PathVariable("jsonId") String jsonId)
+	public ResponseEntity<String> getIpsJson(@PathVariable("jsonId") String jsonId, @RequestParam(value = "key", required = false) String key)
 	{
-		String jsonContent = gdhcnService.downloadJson(jsonId);
+		String jsonContent = gdhcnService.downloadJson(jsonId, key);
 		return ResponseEntity.of(Optional.of(jsonContent));
 	}
 	/**
