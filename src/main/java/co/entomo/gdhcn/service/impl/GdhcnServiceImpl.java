@@ -236,9 +236,9 @@ public class GdhcnServiceImpl implements GdhcnService {
     }
 
     @Override
-    public Map<String, List<Map<String, String>>> getManifest(ManifestRequest manifestRequest, String manifestId)
+    public ManifestResponse getManifest(ManifestRequest manifestRequest, String manifestId)
             throws GdhcnValidationException {
-        Map<String, List<Map<String, String>>> response = new HashMap<String, List<Map<String, String>>>();
+        ManifestResponse response = new ManifestResponse();
         QrCode qrCode = qrCodeRepository.findByManifestId(manifestId).get();
         if (qrCode != null) {
             if (qrCode.getFlag() == null || (qrCode.getFlag() != null && !qrCode.getFlag().contains("P"))) {

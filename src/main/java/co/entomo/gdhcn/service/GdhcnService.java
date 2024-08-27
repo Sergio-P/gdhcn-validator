@@ -1,10 +1,8 @@
 package co.entomo.gdhcn.service;
 
-import java.util.List;
-import java.util.Map;
-
 import co.entomo.gdhcn.exceptions.GdhcnValidationException;
 import co.entomo.gdhcn.vo.ManifestRequest;
+import co.entomo.gdhcn.vo.ManifestResponse;
 import co.entomo.gdhcn.vo.QrCodeRequest;
 import co.entomo.gdhcn.vo.ValidateCwtResponse;
 
@@ -53,7 +51,7 @@ public interface GdhcnService {
 	 * @throws GdhcnValidationException if validation errors occur during the
 	 *                                  process of fetching the manifest.
 	 */
-	Map<String, List<Map<String, String>>> getManifest(ManifestRequest manifestRequest, String manifestId)
+	ManifestResponse getManifest(ManifestRequest manifestRequest, String manifestId)
 			throws GdhcnValidationException;
 
 	/**
