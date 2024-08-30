@@ -33,8 +33,8 @@ import java.security.SecureRandom;
 import java.util.*;
 
 /**
- *  @author Uday Matta
- *  @organization entomo Labs
+ * @author Uday Matta
+ * @organization entomo Labs
  */
 @Slf4j
 @Service
@@ -93,7 +93,8 @@ public class GdhcnServiceImpl implements GdhcnService {
             qrCode.setFlag(shLinkPayload.getFlag());
             qrCodeRepository.save(qrCode);
             gdhcnFileSystem.uploadJson(fileName, qrCodeRequest.getJsonContent());
-            String shLinkConsent = "shlink://" + Base64.getEncoder().encodeToString(OBJECT_MAPPER.writeValueAsString(shLinkPayload).getBytes(StandardCharsets.UTF_8));
+            String shLinkConsent = "shlink://" + Base64.getEncoder()
+                    .encodeToString(OBJECT_MAPPER.writeValueAsString(shLinkPayload).getBytes(StandardCharsets.UTF_8));
 
             long expiredInMillies = new Date(Long.MAX_VALUE).getTime() / 1000L;
             if (!ObjectUtils.isEmpty(shLinkPayload.getExp())) {
@@ -152,7 +153,8 @@ public class GdhcnServiceImpl implements GdhcnService {
                 updateStatus(response, ++step, ValidationStatus.SUCCESS);
                 log.info("Protected Header: " + msg.getProtectedAttributes());
                 String kid = msg.getProtectedAttributes().get(HeaderKeys.KID.AsCBOR()).ToObject(String.class);
-                GdhcnCertificateVO gdhcnCertificateVO = httpClientUtils.getGdhcnCertificate(certificatePayLoad.getIss(), kid);
+                GdhcnCertificateVO gdhcnCertificateVO = httpClientUtils.getGdhcnCertificate(certificatePayLoad.getIss(),
+                        kid);
                 if (gdhcnCertificateVO == null)
                     throw new RuntimeException("Unable to Fetch GDHCN Certificate");
                 updateStatus(response, ++step, ValidationStatus.SUCCESS);
@@ -173,11 +175,10 @@ public class GdhcnServiceImpl implements GdhcnService {
                 log.info("shLink: " + shLink);
                 shLinkContent = OBJECT_MAPPER.readValue(shLink, SHLinkContent.class);
 
-                if(shLinkContent.getExp()!=null)
-                {
+                if (shLinkContent.getExp() != null) {
                     Date expDate = new Date(shLinkContent.getExp());
                     Date currentDate = new Date(System.currentTimeMillis());
-                    if(currentDate.after(expDate)){
+                    if (currentDate.after(expDate)) {
                         shLinkContent = null;
                         throw new RuntimeException("shlink expired");
                     }
@@ -223,8 +224,9 @@ public class GdhcnServiceImpl implements GdhcnService {
     }
 
     @Override
-    public Map<String, List<Map<String, String>>> getManifest(ManifestRequest manifestRequest, String jsonId) throws GdhcnValidationException {
-        Map<String, List<Map<String, String>>> response = new HashMap<String, List<Map<String, String>>>();
+    public ManifestResponse getManifest(ManifestRequest manifestRequest, String jsonId)
+            throws GdhcnValidationException {
+        ManifestResponse response = new ManifestResponse();
         QrCode qrCode = qrCodeRepository.findByIdAndPassCode(jsonId, manifestRequest.getPasscode()).get();
         if (qrCode != null) {
             String uuid = UUID.randomUUID().toString();
@@ -239,7 +241,7 @@ public class GdhcnServiceImpl implements GdhcnService {
             recipientKeyRepository.save(recipientKey);
 
             String url = baseUrl + "/v2/ips-json/" + jsonId + "?key=" + uuid;
-            response.put("files", List.of(Map.of("contentType", "application/fhir+json", "location", url)));
+            response.files = List.of(Map.of("contentType", "application/fhir+json", "location", url));
             return response;
         }
         throw new GdhcnValidationException("Invalid request");
@@ -249,13 +251,13 @@ public class GdhcnServiceImpl implements GdhcnService {
     public String downloadJson(String jsonId, String key) {
         try {
             Optional<RecipientKey> recipientKey = recipientKeyRepository.findByIdAndJsonId(key, jsonId);
-            if(recipientKey.isEmpty()){
+            if (recipientKey.isEmpty()) {
                 log.info("Missing reciepient key");
                 return null;
             }
             Date expDate = recipientKey.get().getExpiresOn();
             Date currentDate = new Date();
-            if(currentDate.after(expDate)){
+            if (currentDate.after(expDate)) {
                 log.info("Reciepient key expired");
                 return null;
             }
@@ -295,8 +297,8 @@ public class GdhcnServiceImpl implements GdhcnService {
     private String getPrivateDSCKeyContent() throws IOException {
         StringBuilder content = new StringBuilder();
         try (FileInputStream fis = new FileInputStream(dscKeyPath);
-             InputStreamReader isr = new InputStreamReader(fis);
-             BufferedReader reader = new BufferedReader(isr)) {
+                InputStreamReader isr = new InputStreamReader(fis);
+                BufferedReader reader = new BufferedReader(isr)) {
 
             String line;
             while ((line = reader.readLine()) != null) {

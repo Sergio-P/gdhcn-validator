@@ -123,9 +123,14 @@ cd entomo-gdhcn-validator
 ```shell
 mkdir json
 ```
-#### 4. Build the project using Docker:
+#### 4. Build and run the project using Docker:
 ```shell
 docker-compose up -d
+```
+
+#### 4. Re Build and run the project using Docker:
+```shell
+docker-compose up --build --force-recreate --no-deps -d
 ```
 
 ## API Endpoints
@@ -134,6 +139,11 @@ docker-compose up -d
 - POST /v2/vshcValidation: Validates a GDHCN certificate.
 - GET /v2/ips-json/{jsonId}: Retrieves JSON data for the given ID.
 - POST /v2/manifests/{jsonId}: Retrieves a manifest for the given ID.
+
+### Swagger
+
+More documentation can be found in the `/swagger-ui/index.html#` endpoint. Example: `http://localhost:8080/swagger-ui/index.html#/`
+
 
 ## Exception Handling
 

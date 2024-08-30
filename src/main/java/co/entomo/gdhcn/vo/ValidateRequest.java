@@ -1,7 +1,10 @@
-package co.entomo.gdhcn.vo;/**
- * @author Uday Matta
- */
+package co.entomo.gdhcn.vo;
 
+/**
+* @author Uday Matta
+*/
+
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -14,6 +17,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Data
 public class ValidateRequest {
- @NotBlank(message = "Qr CodeContent is mandatory")
- private String qrCodeContent;
+  @NotBlank(message = "Qr CodeContent is mandatory")
+  @Schema(name = "qrCodeContent", example = "HC1:6BFOXNMG2N9H1/4W%MXN5PR7QO5SYP60JO DJS4//O:R8LCDO%0TJH/U3HT70%45C3SWQK.4W$4MJVIFT/FJ0R5BS6YVBS7BGJP49B7IIYIJY%D49M8MB/$CMYJ14KW9K8-I3QS7XA*6K6EAG.ST1J*.TP.AWUBIOJ3XJP1JGQSQHB9ED+0EUEU2ND5TJJCD6ZO6JPW1O3HH2:FVD9P*2$.F7/B*GI 85H1GCY0*2OZGIK%7%GGZGIU:J+JI%2M85O$$0*2O2.DW5WPNP:9WY1M FADIID.7*/BI582SUVXMLO6-KG5RHPSERU9N*J:/PIO8PY1.G8T%95P8AP5JJ8XV16O5PK6K-H S9BQT*UM0*V6RE*NGPY7GYHG H*VH1+HBJ91%BKL5GSMCTLC%B9PKEN1ZU1 :R4P1KTM4P1D$UCU9CXBGE5%0SZ%PHMLP982V220HP/S/A0*JUB-9QV184VXCVBUH6793CQ.0IK11BQ92.U.XHAFNAC3WY54OSCANN:47HHR$I*XB+NMBETJW3 D90SUG%DZ4BLVBSFVII2%5Q5RNCGD XQ0M8W/6NV9HYKL28/LL2MKT/M19Q4ID:RLM50L:EG4", required = true)
+  private String qrCodeContent;
 }
