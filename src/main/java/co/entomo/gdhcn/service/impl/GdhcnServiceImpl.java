@@ -72,12 +72,7 @@ public class GdhcnServiceImpl implements GdhcnService {
             String uuid = UUID.randomUUID().toString();
             String fileName = uuid + ".json";
             String jsonUrl = gdhcnFileSystem.getPath(fileName);
-            String shUrl = null;
-            if (StringUtils.hasLength(qrCodeRequest.getPassCode())) {
-                shUrl = baseUrl + "/v2/manifests/" + uuid;
-            } else {
-                shUrl = baseUrl + "/v2/ips-json/" + uuid;
-            }
+            String shUrl = baseUrl + "/v2/manifests/" + uuid;
             SHLinkContent shLinkPayload = SHLinkContent.builder()
                     .url(shUrl)
                     .flag(qrCodeRequest.getPassCode() != null ? "P" : "U")
